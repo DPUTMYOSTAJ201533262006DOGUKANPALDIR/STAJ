@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html>
+<head> 
+<!-- MENÜNÜN BULUNDUĞU ALAN ARKA PLAN RENGİ BOYUTLARI RENK KODLARININ OLDUĞU ALAN. -->
+<style>
+.item1 { grid-area: header; }
+.item2 { grid-area: menu; }
+.item3 { grid-area: main; }
+.item4 { grid-area: right; }
+
+
+.grid-container {
+  display: grid;
+  grid-template-areas:
+    'header header header header header header'
+    'menu main main main right right'
+    'menu main main main right right';
+  grid-gap: 5px;
+  background-color: #908f8f;
+  padding: 5px;
+}
+
+.grid-container > div {
+  background-color: #f2f2f2;
+  text-align: center;
+  padding: 0px 0;
+  font-size: 25px;
+}
+
+.dropbtn {
+  background-color: #2d96ff;
+  color: white;
+  padding: 16px;
+  font-size: 16px;
+  border: none;
+  cursor: pointer;
+}
+
+.dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.dropdown-content {
+  display: none;
+  position: absolute;
+  background-color: #f9f9f9;
+  min-width: 160px;
+  box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+  z-index: 1;
+}
+
+.dropdown-content a {
+  color: black;
+  padding: 12px 16px;
+  text-decoration: none;
+  display: block;
+}
+
+.dropdown-content a:hover {background-color: #f1f1f1}
+
+.dropdown:hover .dropdown-content {
+  display: block;
+}
+
+.dropdown:hover .dropbtn {
+  background-color: #56aaff;
+}
+</style>
+
+</head>
+<body>
+<!-- URL, MENÜ İSİMLERİNİN VE AÇILABİLİR MENÜNÜN OLDUĞU ALAN. -->
+<div class="grid-container">
+  <div class="item1"><h1>Güncel Bilgisayar Teknolojileri</h1></div>
+  <div class="item2"><div class="dropdown">
+  <button class="dropbtn">Bedava Yazılımlar</button>
+  <div class="dropdown-content">
+  <a href="https://www.pcnet.com.tr/yazilim/bedava-yazilimlar/recent-file-seeker/" target="blank">1- Recent File Seeker</a>
+  <a href="https://www.pcnet.com.tr/yazilim/bedava-yazilimlar/manictime/">2- Manic Time</a>
+  <a href="https://www.pcnet.com.tr/yazilim/bedava-yazilimlar/avira-phantom-vpn/">3- Avira Phantom VPN</a>
+  <a href="https://www.pcnet.com.tr/yazilim/bedava-yazilimlar/torrentrover/">4- Torrent Trover</a>
+  <a href="https://www.pcnet.com.tr/yazilim/bedava-yazilimlar/grepwin/">5- Grep Win</a>
+  <a href="https://www.pcnet.com.tr/yazilim/bedava-yazilimlar/iperius-backup-free/">6- İperius</a>
+  <a href="https://www.pcnet.com.tr/yazilim/bedava-yazilimlar/birdsong/">7- BirdSong</a>
+  <a href="https://www.pcnet.com.tr/yazilim/bedava-yazilimlar/splat/">8- Splat</a>
+  <a href="https://www.pcnet.com.tr/yazilim/bedava-yazilimlar/mousotron/">9- Motron</a>
+  <a href="https://www.pcnet.com.tr/yazilim/bedava-yazilimlar/instagiffer/">10- Giffer</a>
+  
+  </div>
+</div></div>
+  <div class="item3"><p font-size:2px> <h3>Gözde bilişim eğitimleri</h3>Teknolojinin iş dünyasındaki yeri önem kazandıkça bilişim profesyonellerinin değeri de artıyor.
+
+Teknoloji son kullanıcıların hayatını kolaylaştırırken, öte tarafta şirketlerin iş yapış şekillerinin dinamik şekilde değişmesine, gelişmesine sebep oluyor. Teknoloji yatırımları şirketlere yeni olanaklar ve her seferinde daha düşük maliyetle iş yapma avantajı sunuyor. Tabii şirketlere değer katan teknolojileri tasarlayacak, uygulayacak ve tüm süreçleri yönetecek profesyonellere olan ihtiyaç da hızla artıyor.
+
+Bir kariyer hedefi olarak “bilişim profesyoneli olmak”, şimdilerde sayısız gencin gündeminde. Bilgisayar başında büyüyen nesiller, anne-babalarımızın dönemindeki doktorluk, avukatlık gibi güzide mesleklerin yanına sistem yöneticisi ve yazılım geliştirici benzeri teknolojik başlıkları eklediler bile.
+
+CV’nizi güçlendirin
+
+Üniversite mezunlarının sayısının artması ve gençlerin işe girme aşamasında kendi aralarında yaşadıkları rekabet, bilişim eğitimlerinin önemini günden güne artırıyor. Şimdilerde çok zorlanmadan iş bulmak isteyen yeni mezunlar, CV’lerini çeşitli sertifikalarla süslemek durumunda. Bilişim eğitimleri sonucunda alınan uluslar arası geçerliliğe sahip sertifikalar, kariyerini bu alanda başlatmak veya sürdürmek isteyen kişiler için çok önemli. Bilgi teknolojileri alanındaki uzmanlaşmış iş gücü açığı, şirketlerdeki bilişim profesyonellerini daha değerli kılıyor. Dolayısıyla bilişimde kariyer yapmak, hem değerli niteliklere kısa zamanda ulaşmak hem de iş hayatına girişte zor aşamaları daha hızlı atlamak anlamına geliyor.
+
+Doğru eğitimi seçin
+
+Bilgi teknolojileri çatısı altında alınabilecek eğitimler çeşitlilik gösteriyor. Web ve grafik tasarımcılığından yazılım geliştiriciliğe, sistem ve ağ uzmanlığından bilgi yönetimi uzmanlığına kadar geniş bir yelpaze söz konusu. Uzmanlaşmak istediğiniz alanı seçmeden önce iyi araştırma yapmak, bu yol ayrımında verdiğiniz kararın kariyeriniz boyunca etkili olacağını unutmamak gerek.
+
+Günümüzün popüler eğitim kurumları, kariyerini bilgi teknolojileri çerçevesinde çizmek isteyen kişiler için önemli birer yol gösterici konumunda. İşleri yalnızca eğitimi sağlamak değil, bireylere kariyerlerini nasıl şekillendirebilecekleri konusunda da bilgiler vermek. Bu kurumlardan birine başvurduğunuz zaman uzmanlaşmak isteyebileceğiniz branşlar hakkında size ayrıntılı bilgi verebilir, gerekirse bu alanlarda eğitim almış ve kariyerine başlamış kişilerle görüşmenizi sağlayarak yardımcı olabilirler.
+
+Seçtiğiniz branşa uzunca bir süre odaklanmanız ve zamanınızın büyük kısmını bu branşta ilerlemek için harcamanız gerekecek. Bu sebeple seveceğiniz, üzerinde uğraşmaktan mutlu olacağınız bir branşı seçmeniz büyük önem taşıyor. Gerekirse alabileceğiniz eğitimleri tasarım, yazılım, donanım gibi temel başlıklara ayırıp her birine olan ilginizi tartarak düşünmeye başlamalı ve sonuca ulaştığınızda verdiğiniz kararın doğru olduğundan emin olmalısınız. Karar vermeden önce sektörde çalışan profesyonellerden bilgi almak sizin için büyük bir avantaj olacaktır. Gireceğiniz yolun hayatınızın geri kalanını şekillendireceğini aklınızdan çıkarmamalısınız.
+
+Hangi eğitimleri alabilirsiniz?
+
+Teknoloji çok hızlı şekilde geliştiğinden, bilgi teknolojileri alanındaki eğitim programlarının sayısı da hızla artıyor. Eğitim programları, teknolojide kendi alanlarında baskın şirketlerin adlarıyla anılıyor. Cisco ürünlerinin kullanıldığı sistemleri yönetmek, Microsoft’un sağladığı programlama çatısı altında yazılım ürünleri oluşturmak veya Oracle’ın sağladığı veritabanı çözümleri üzerinde uzmanlaşmak için alınan eğitimlerin adları doğal olarak bu şirketlerin adlarını içeriyor. Aldığınız eğitimin sonunda girdiğiniz sınavda başarılı olmanız halinde yine bu şirketlerin adını taşıyan sertifikalara sahip oluyorsunuz. Şimdi bilgi teknolojilerindeki bazı popüler sertifika programlarından bahsetmeye çalışacağız.<p></div>  
+  <div class="item4"><a href="https://ibb.co/N2261QR"><img src="https://i.ibb.co/5hhWYtZ/Ekran-Al-nt-s.png" alt="Ekran-Al-nt-s" border="0"></a></div>
+
+</div>
+
+</body>
+</html>
