@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<!-- iPhone / mobil uyumluluk: tam ekran genişlik, zoom kontrolü -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#16a34a">
+<title>Pati İhbar - Hasta Sokak Hayvanı Bildirimi</title>
+
+<!-- Harita için Leaflet (internet varsa yüklenir, yoksa harita sekmesi uyarı gösterir) -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  :root {
+    --yesil: #16a34a;
+    --yesil-koyu: #15803d;
+    --acil: #dc2626;
+    --gri: #6b7280;
+    --bg: #f3f4f6;
+    --kart: #ffffff;
+  }
+  html, body {
+    margin: 0;
+    padding: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: #111827;
+    -webkit-text-size-adjust: 100%;
+  }
+  header {
+    background: linear-gradient(135deg, var(--yesil), var(--yesil-koyu));
+    color: #fff;
+    padding: calc(env(safe-area-inset-top) + 16px) 16px 16px;
+    text-align: center;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  }
+  header h1 { margin: 0; font-size: 20px; }
+  header p { margin: 4px 0 0; font-size: 13px; opacity: 0.9; }
+
+  main {
+    padding: 16px;
+    padding-bottom: calc(env(safe-area-inset-bottom) + 90px);
+    max-width: 600px;
+    margin: 0 auto;
+  }
+
+  .kart {
+    background: var(--kart);
+    border-radius: 14px;
+    padding: 16px;
+    margin-bottom: 16px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  }
+
+  label { display: block; font-weight: 600; margin: 14px 0 6px; font-size: 14px; }
+  label:first-child { margin-top: 0; }
+
+  input, select, textarea {
+    width: 100%;
+    padding: 13px;
+    border: 1px solid #d1d5db;
+    border-radius: 10px;
+    font-size: 16px; /* iOS otomatik zoom'u engeller */
+    font-family: inherit;
+    background: #fff;
+  }
+  textarea { resize: vertical; min-height: 80px; }
+  input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: var(--yesil);
+    box-shadow: 0 0 0 3px rgba(22,163,74,0.15);
+  }
+
+  .acil-grup { display: flex; gap: 8px; }
+  .acil-grup label { flex: 1; margin: 0; text-align: center; cursor: pointer; }
+  .acil-grup input { display: none; }
+  .acil-btn {
+    display: block; padding: 12px 6px; border: 2px solid #e5e7eb;
+    border-radius: 10px; font-size: 13px; font-weight: 600; color: var(--gri);
+    transition: all 0.15s;
+  }
+  .acil-grup input:checked + .acil-btn {
+    border-color: var(--yesil); background: #ecfdf5; color: var(--yesil-koyu);
+  }
+  .acil-grup input[value="Acil"]:checked + .acil-btn {
+    border-color: var(--acil); background: #fef2f2; color: var(--acil);
+  }
+
+  .btn {
+    display: block; width: 100%; padding: 15px;
+    border: none; border-radius: 12px; font-size: 16px; font-weight: 700;
+    cursor: pointer; margin-top: 8px;
+  }
+  .btn-ana { background: var(--yesil); color: #fff; }
+  .btn-ana:active { background: var(--yesil-koyu); }
+  .btn-konum { background: #2563eb; color: #fff; margin-top: 0; }
+  .btn-konum:active { background: #1d4ed8; }
+
+  #foto-onizleme {
+    width: 100%; max-height: 240px; object-fit: cover;
+    border-radius: 10px; margin-top: 10px; display: none;
+  }
+  .konum-bilgi { font-size: 13px; color: var(--gri); margin-top: 8px; min-height: 18px; }
+
+  h2 { font-size: 16px; margin: 0 0 12px; display: flex; align-items: center; gap: 8px; }
+  .sayac { background: var(--yesil); color: #fff; border-radius: 20px; padding: 2px 10px; font-size: 13px; }
+  .ipucu { font-size: 13px; color: var(--gri); margin: 10px 0 0; line-height: 1.5; }
+
+  /* Belediye/Vet rehberi */
+  .rehber-aksiyon { display: flex; gap: 8px; margin-top: 10px; }
+  .rehber-aksiyon a {
+    flex: 1; text-align: center; text-decoration: none; padding: 11px;
+    border-radius: 9px; font-size: 14px; font-weight: 600;
+  }
+  .a-ara { background: var(--yesil); color: #fff; }
+  .a-wp2 { background: #25d366; color: #fff; }
+
+  /* İhbar listesi */
+  .ihbar {
+    border-left: 4px solid var(--yesil);
+    background: #fff; border-radius: 10px; padding: 12px;
+    margin-bottom: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  }
+  .ihbar.acil { border-left-color: var(--acil); }
+  .ihbar-bas { display: flex; justify-content: space-between; align-items: center; }
+  .ihbar-tip { font-weight: 700; font-size: 15px; }
+  .rozet { font-size: 11px; padding: 2px 8px; border-radius: 12px; font-weight: 600; }
+  .rozet.acil { background: #fef2f2; color: var(--acil); }
+  .rozet.normal { background: #ecfdf5; color: var(--yesil-koyu); }
+  .ihbar-aciklama { font-size: 14px; color: #374151; margin: 6px 0; }
+  .ihbar-meta { font-size: 12px; color: var(--gri); }
+  .ihbar img { width: 100%; border-radius: 8px; margin-top: 8px; }
+  .ihbar-aksiyon { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+  .ihbar-aksiyon a, .ihbar-aksiyon button {
+    flex: 1 1 calc(50% - 4px); text-align: center; text-decoration: none; padding: 9px;
+    border-radius: 8px; font-size: 13px; font-weight: 600; border: none; cursor: pointer;
+  }
+  .a-wp { background: #25d366; color: #fff; }
+  .a-harita { background: #2563eb; color: #fff; }
+  .a-eposta { background: #f59e0b; color: #fff; }
+  .a-sunucu { background: #7c3aed; color: #fff; }
+  .a-sil { background: #fee2e2; color: var(--acil); }
+  .bos { text-align: center; color: var(--gri); padding: 20px; font-size: 14px; }
+
+  /* Harita */
+  #harita { width: 100%; height: 420px; border-radius: 12px; }
+  #harita-uyari { display:none; }
+
+  /* Alt sekme çubuğu */
+  nav {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    background: #fff; display: flex; border-top: 1px solid #e5e7eb;
+    padding-bottom: env(safe-area-inset-bottom);
+    z-index: 1000;
+  }
+  nav button {
+    flex: 1; background: none; border: none; padding: 9px 4px; cursor: pointer;
+    font-size: 10px; color: var(--gri); font-weight: 600;
+  }
+  nav button .ikon { font-size: 21px; display: block; }
+  nav button.aktif { color: var(--yesil); }
+
+  .gizli { display: none; }
+  .toast {
+    position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%);
+    background: #111827; color: #fff; padding: 12px 20px; border-radius: 24px;
+    font-size: 14px; z-index: 2000; opacity: 0; transition: opacity 0.3s; pointer-events: none;
+    max-width: 90%; text-align: center;
+  }
+  .toast.goster { opacity: 1; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🐾 Pati İhbar</h1>
+  <p>Hasta sokak hayvanını veterinere bildir</p>
+</header>
+
+<main>
+  <!-- ====== YENİ İHBAR SEKMESİ ====== -->
+  <section id="sayfa-ihbar">
+    <div class="kart">
+      <h2>📝 Yeni İhbar</h2>
+      <form id="ihbar-form">
+        <label for="hayvan">Hayvan Türü</label>
+        <select id="hayvan" required>
+          <option value="">Seçiniz...</option>
+          <option>🐕 Köpek</option>
+          <option>🐈 Kedi</option>
+          <option>🐦 Kuş</option>
+          <option>🐢 Diğer</option>
+        </select>
+
+        <label>Aciliyet Durumu</label>
+        <div class="acil-grup">
+          <label><input type="radio" name="aciliyet" value="Acil" required><span class="acil-btn">🚨 Acil</span></label>
+          <label><input type="radio" name="aciliyet" value="Orta" checked><span class="acil-btn">⚠️ Orta</span></label>
+          <label><input type="radio" name="aciliyet" value="Düşük"><span class="acil-btn">🟢 Düşük</span></label>
+        </div>
+
+        <label for="aciklama">Durum Açıklaması</label>
+        <textarea id="aciklama" placeholder="Örn: Köpeğin arka bacağı yaralı, yürüyemiyor. Kanama var." required></textarea>
+
+        <label for="foto">Fotoğraf (kamera ile çek veya seç)</label>
+        <input type="file" id="foto" accept="image/*" capture="environment">
+        <img id="foto-onizleme" alt="Önizleme">
+
+        <label>Konum</label>
+        <button type="button" class="btn btn-konum" id="konum-btn">📍 Konumumu Al</button>
+        <div class="konum-bilgi" id="konum-bilgi">Konum henüz alınmadı.</div>
+
+        <label for="iletisim">İletişim (telefon / ad - opsiyonel)</label>
+        <input type="text" id="iletisim" placeholder="Adınız ve telefon numaranız">
+
+        <button type="submit" class="btn btn-ana">✅ İhbarı Kaydet</button>
+      </form>
+    </div>
+
+    <!-- (1) HAZIR BELEDİYE / VETERİNER REHBERİ -->
+    <div class="kart">
+      <h2>🏥 Belediye / Veteriner Rehberi</h2>
+      <label for="vet">Bir kurum seçin</label>
+      <select id="vet"></select>
+      <div class="rehber-aksiyon" id="rehber-aksiyon"></div>
+      <p class="ipucu">
+        Acil durumlarda doğrudan arayın. Kurum listesini <b>Ayarlar</b> sekmesinden
+        kendi şehrinize göre düzenleyebilirsiniz.
+      </p>
+    </div>
+  </section>
+
+  <!-- ====== İHBARLARIM SEKMESİ ====== -->
+  <section id="sayfa-liste" class="gizli">
+    <div class="kart">
+      <h2>📋 İhbarlarım <span class="sayac" id="sayac">0</span></h2>
+      <div id="liste"></div>
+    </div>
+  </section>
+
+  <!-- ====== HARİTA SEKMESİ ====== -->
+  <section id="sayfa-harita" class="gizli">
+    <div class="kart">
+      <h2>🗺️ İhbar Haritası</h2>
+      <div id="harita"></div>
+      <p class="ipucu" id="harita-uyari">
+        ⚠️ Harita yüklenemedi (internet bağlantısı gerekir). Konumlu ihbarlar
+        “İhbarlarım” sekmesinden haritada açılabilir.
+      </p>
+      <p class="ipucu">Konumu olan ihbarlar haritada işaretlenir. İşarete dokununca detay görünür.</p>
+    </div>
+  </section>
+
+  <!-- ====== AYARLAR SEKMESİ ====== -->
+  <section id="sayfa-ayarlar" class="gizli">
+    <!-- (2) SUNUCUYA GÖNDERİM -->
+    <div class="kart">
+      <h2>☁️ Sunucuya / E-postaya Gönderim</h2>
+      <label for="eposta">Bildirim E-posta Adresi</label>
+      <input type="email" id="eposta" placeholder="veteriner@belediye.gov.tr">
+      <label for="webhook">Sunucu / Webhook Adresi (opsiyonel)</label>
+      <input type="url" id="webhook" placeholder="https://ornek.com/api/ihbar">
+      <button class="btn btn-ana" id="ayar-kaydet">💾 Ayarları Kaydet</button>
+      <p class="ipucu">
+        Kaydettikten sonra her ihbarda <b>✉️ E-posta</b> ve <b>☁️ Sunucu</b>
+        butonları görünür. Webhook adresine ihbar JSON olarak gönderilir
+        (Formspree, kendi API'niz vb. kullanılabilir).
+      </p>
+    </div>
+
+    <!-- (1) KURUM LİSTESİ DÜZENLEME -->
+    <div class="kart">
+      <h2>🏥 Kurum Rehberini Düzenle</h2>
+      <div id="kurum-liste"></div>
+      <label for="k-ad">Yeni kurum adı</label>
+      <input type="text" id="k-ad" placeholder="Örn: Çankaya Bel. Veteriner İşleri">
+      <label for="k-tel">Telefon</label>
+      <input type="tel" id="k-tel" placeholder="Örn: +90 312 000 00 00">
+      <button class="btn btn-ana" id="kurum-ekle">➕ Kurum Ekle</button>
+    </div>
+  </section>
+</main>
+
+<nav>
+  <button id="nav-ihbar" class="aktif" onclick="sekme('ihbar')"><span class="ikon">➕</span>Yeni İhbar</button>
+  <button id="nav-liste" onclick="sekme('liste')"><span class="ikon">📋</span>İhbarlar</button>
+  <button id="nav-harita" onclick="sekme('harita')"><span class="ikon">🗺️</span>Harita</button>
+  <button id="nav-ayarlar" onclick="sekme('ayarlar')"><span class="ikon">⚙️</span>Ayarlar</button>
+</nav>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ===== Veri katmanı (localStorage) =====
+const ANAHTAR = "pati_ihbarlar";
+const AYAR_ANAHTAR = "pati_ayarlar";
+const KURUM_ANAHTAR = "pati_kurumlar";
+
+let sonKonum = null;
+let sonFoto = null;
+let harita = null;
+let haritaKatmani = null;
+
+// Varsayılan kurum rehberi (kullanıcı Ayarlar'dan değiştirebilir)
+const VARSAYILAN_KURUMLAR = [
+  { ad: "🚨 Belediye Çağrı Merkezi (153)", tel: "153" },
+  { ad: "🏥 HAYTAP Yaralı Hayvan Hattı", tel: "+908502500108" },
+  { ad: "🐾 Belediye Veteriner İşleri", tel: "" },
+  { ad: "🩺 En Yakın Veteriner Kliniği", tel: "" }
+];
+
+function jsonGetir(anahtar, varsayilan) {
+  try { return JSON.parse(localStorage.getItem(anahtar)) || varsayilan; }
+  catch (e) { return varsayilan; }
+}
+function ihbarlariGetir() { return jsonGetir(ANAHTAR, []); }
+function ihbarlariKaydet(liste) { localStorage.setItem(ANAHTAR, JSON.stringify(liste)); }
+function ayarlariGetir() { return jsonGetir(AYAR_ANAHTAR, { eposta: "", webhook: "" }); }
+function ayarlariKaydet(a) { localStorage.setItem(AYAR_ANAHTAR, JSON.stringify(a)); }
+function kurumlariGetir() { return jsonGetir(KURUM_ANAHTAR, VARSAYILAN_KURUMLAR.slice()); }
+function kurumlariKaydet(k) { localStorage.setItem(KURUM_ANAHTAR, JSON.stringify(k)); }
+
+// ===== Toast =====
+let toastZaman;
+function toast(mesaj) {
+  const t = document.getElementById("toast");
+  t.textContent = mesaj;
+  t.classList.add("goster");
+  clearTimeout(toastZaman);
+  toastZaman = setTimeout(() => t.classList.remove("goster"), 2800);
+}
+
+function kacir(s) {
+  return (s || "").replace(/[&<>"']/g, function (c) {
+    return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+  });
+}
+
+// ===== Sekme geçişi =====
+function sekme(ad) {
+  ["ihbar", "liste", "harita", "ayarlar"].forEach(function (s) {
+    document.getElementById("sayfa-" + s).classList.toggle("gizli", s !== ad);
+    document.getElementById("nav-" + s).classList.toggle("aktif", s === ad);
+  });
+  if (ad === "liste") listeyiCiz();
+  if (ad === "harita") haritayiCiz();
+  if (ad === "ayarlar") ayarSayfasiniCiz();
+  window.scrollTo(0, 0);
+}
+
+// ===== Fotoğraf =====
+document.getElementById("foto").addEventListener("change", function (e) {
+  const dosya = e.target.files[0];
+  const onizleme = document.getElementById("foto-onizleme");
+  if (!dosya) { onizleme.style.display = "none"; sonFoto = null; return; }
+  const okuyucu = new FileReader();
+  okuyucu.onload = function (ev) {
+    kucult(ev.target.result, 800, function (kucukUrl) {
+      sonFoto = kucukUrl;
+      onizleme.src = kucukUrl;
+      onizleme.style.display = "block";
+    });
+  };
+  okuyucu.readAsDataURL(dosya);
+});
+function kucult(dataUrl, maxBoyut, geriCagir) {
+  const img = new Image();
+  img.onload = function () {
+    let { width, height } = img;
+    if (width > height && width > maxBoyut) { height = height * maxBoyut / width; width = maxBoyut; }
+    else if (height > maxBoyut) { width = width * maxBoyut / height; height = maxBoyut; }
+    const c = document.createElement("canvas");
+    c.width = width; c.height = height;
+    c.getContext("2d").drawImage(img, 0, 0, width, height);
+    geriCagir(c.toDataURL("image/jpeg", 0.7));
+  };
+  img.src = dataUrl;
+}
+
+// ===== Konum =====
+document.getElementById("konum-btn").addEventListener("click", function () {
+  const bilgi = document.getElementById("konum-bilgi");
+  if (!navigator.geolocation) { bilgi.textContent = "Cihaz konum desteklemiyor."; return; }
+  bilgi.textContent = "Konum alınıyor...";
+  navigator.geolocation.getCurrentPosition(
+    function (p) {
+      sonKonum = { lat: p.coords.latitude, lng: p.coords.longitude };
+      bilgi.innerHTML = "✅ Konum alındı: " + sonKonum.lat.toFixed(5) + ", " + sonKonum.lng.toFixed(5);
+    },
+    function () { bilgi.textContent = "⚠️ Konum alınamadı. Lütfen konum iznini açın."; },
+    { enableHighAccuracy: true, timeout: 10000 }
+  );
+});
+
+// ===== İhbar kaydet =====
+document.getElementById("ihbar-form").addEventListener("submit", function (e) {
+  e.preventDefault();
+  const ihbar = {
+    id: Date.now(),
+    hayvan: document.getElementById("hayvan").value,
+    aciliyet: document.querySelector('input[name="aciliyet"]:checked').value,
+    aciklama: document.getElementById("aciklama").value.trim(),
+    iletisim: document.getElementById("iletisim").value.trim(),
+    foto: sonFoto,
+    konum: sonKonum,
+    tarih: new Date().toLocaleString("tr-TR")
+  };
+  const liste = ihbarlariGetir();
+  liste.unshift(ihbar);
+  try {
+    ihbarlariKaydet(liste);
+  } catch (hata) {
+    toast("⚠️ Depolama dolu. Fotoğrafsız kaydedildi.");
+    ihbar.foto = null; liste[0] = ihbar; ihbarlariKaydet(liste);
+  }
+  e.target.reset();
+  document.getElementById("foto-onizleme").style.display = "none";
+  document.getElementById("konum-bilgi").textContent = "Konum henüz alınmadı.";
+  sonFoto = null; sonKonum = null;
+  toast("✅ İhbar kaydedildi");
+  sekme("liste");
+});
+
+// ===== İhbar metni (paylaşım için) =====
+function ihbarMetni(i) {
+  return "🐾 HASTA SOKAK HAYVANI İHBARI\n" +
+    "Tür: " + i.hayvan + "\n" +
+    "Aciliyet: " + i.aciliyet + "\n" +
+    "Durum: " + i.aciklama + "\n" +
+    (i.konum ? "Konum: https://maps.google.com/?q=" + i.konum.lat + "," + i.konum.lng + "\n" : "Konum: belirtilmedi\n") +
+    (i.iletisim ? "İletişim: " + i.iletisim + "\n" : "") +
+    "Tarih: " + i.tarih;
+}
+
+// ===== Liste =====
+function listeyiCiz() {
+  const liste = ihbarlariGetir();
+  const ayar = ayarlariGetir();
+  document.getElementById("sayac").textContent = liste.length;
+  const kap = document.getElementById("liste");
+  if (liste.length === 0) {
+    kap.innerHTML = '<div class="bos">Henüz ihbar yok.<br>“Yeni İhbar” sekmesinden ekleyin. 🐾</div>';
+    return;
+  }
+  kap.innerHTML = liste.map(function (i) {
+    const acilMi = i.aciliyet === "Acil";
+    const mesaj = encodeURIComponent(ihbarMetni(i));
+    const haritaLink = i.konum
+      ? '<a class="a-harita" href="https://maps.google.com/?q=' + i.konum.lat + ',' + i.konum.lng + '" target="_blank">🗺️ Harita</a>' : '';
+    const epostaLink = ayar.eposta
+      ? '<a class="a-eposta" href="mailto:' + encodeURIComponent(ayar.eposta) +
+        '?subject=' + encodeURIComponent("Hasta Sokak Hayvanı İhbarı - " + i.hayvan) +
+        '&body=' + mesaj + '">✉️ E-posta</a>' : '';
+    const sunucuBtn = ayar.webhook
+      ? '<button class="a-sunucu" onclick="sunucuyaGonder(' + i.id + ')">☁️ Sunucu</button>' : '';
+    return '' +
+      '<div class="ihbar ' + (acilMi ? 'acil' : '') + '">' +
+        '<div class="ihbar-bas">' +
+          '<span class="ihbar-tip">' + i.hayvan + '</span>' +
+          '<span class="rozet ' + (acilMi ? 'acil' : 'normal') + '">' + i.aciliyet + '</span>' +
+        '</div>' +
+        '<div class="ihbar-aciklama">' + kacir(i.aciklama) + '</div>' +
+        '<div class="ihbar-meta">🕒 ' + i.tarih + (i.iletisim ? ' · ☎️ ' + kacir(i.iletisim) : '') + '</div>' +
+        (i.foto ? '<img src="' + i.foto + '" alt="ihbar foto">' : '') +
+        '<div class="ihbar-aksiyon">' +
+          '<a class="a-wp" href="https://wa.me/?text=' + mesaj + '" target="_blank">📲 WhatsApp</a>' +
+          haritaLink + epostaLink + sunucuBtn +
+          '<button class="a-sil" onclick="ihbarSil(' + i.id + ')">🗑️ Sil</button>' +
+        '</div>' +
+      '</div>';
+  }).join("");
+}
+
+function ihbarSil(id) {
+  if (!confirm("Bu ihbarı silmek istediğinize emin misiniz?")) return;
+  ihbarlariKaydet(ihbarlariGetir().filter(function (i) { return i.id !== id; }));
+  listeyiCiz();
+  toast("🗑️ İhbar silindi");
+}
+
+// (2) Sunucuya gönderim
+function sunucuyaGonder(id) {
+  const ayar = ayarlariGetir();
+  const ihbar = ihbarlariGetir().find(function (i) { return i.id === id; });
+  if (!ayar.webhook || !ihbar) return;
+  toast("☁️ Gönderiliyor...");
+  fetch(ayar.webhook, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(ihbar)
+  })
+  .then(function (r) {
+    if (r.ok) toast("✅ Sunucuya gönderildi");
+    else toast("⚠️ Sunucu hatası: " + r.status);
+  })
+  .catch(function () { toast("⚠️ Gönderilemedi (bağlantı/CORS)."); });
+}
+
+// ===== (3) Harita =====
+// Leaflet'i sayfa açılışında yükleyemeyen ortamlar (ör. htmlpreview) için
+// kütüphaneyi harita açılınca, birden fazla CDN deneyerek canlı yükle.
+const LEAFLET_CDN = [
+  "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js",
+  "https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js",
+  "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"
+];
+const LEAFLET_CSS = [
+  "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css",
+  "https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css",
+  "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css"
+];
+let leafletYukleniyor = false;
+function leafletYukle(geriCagir) {
+  if (typeof L !== "undefined") return geriCagir(true);
+  if (leafletYukleniyor) return;
+  leafletYukleniyor = true;
+  // CSS (ilk kaynak yeterli)
+  if (!document.getElementById("leaflet-css-dyn")) {
+    const css = document.createElement("link");
+    css.id = "leaflet-css-dyn"; css.rel = "stylesheet"; css.href = LEAFLET_CSS[0];
+    document.head.appendChild(css);
+  }
+  // JS - sırayla CDN dene
+  (function dene(i) {
+    if (i >= LEAFLET_CDN.length) { leafletYukleniyor = false; geriCagir(false); return; }
+    const s = document.createElement("script");
+    s.src = LEAFLET_CDN[i];
+    s.onload = function () { leafletYukleniyor = false; geriCagir(typeof L !== "undefined"); };
+    s.onerror = function () { dene(i + 1); };
+    document.head.appendChild(s);
+  })(0);
+}
+
+function haritayiCiz() {
+  const uyari = document.getElementById("harita-uyari");
+  if (typeof L === "undefined") {
+    uyari.style.display = "block";
+    uyari.innerHTML = "⏳ Harita yükleniyor...";
+    leafletYukle(function (basarili) {
+      if (basarili) { uyari.style.display = "none"; haritayiCiz(); }
+      else {
+        uyari.style.display = "block";
+        uyari.innerHTML = "⚠️ Harita yüklenemedi (internet/CDN engeli olabilir). " +
+          "Konumlu ihbarlar “İhbarlar” sekmesinden 🗺️ Harita ile açılabilir.";
+      }
+    });
+    return;
+  }
+  uyari.style.display = "none";
+  if (!harita) {
+    harita = L.map("harita").setView([39.0, 35.0], 5); // Türkiye geneli
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19, attribution: "© OpenStreetMap"
+    }).addTo(harita);
+    haritaKatmani = L.layerGroup().addTo(harita);
+  }
+  haritaKatmani.clearLayers();
+  const konumlu = ihbarlariGetir().filter(function (i) { return i.konum; });
+  const noktalar = [];
+  konumlu.forEach(function (i) {
+    const m = L.marker([i.konum.lat, i.konum.lng]).addTo(haritaKatmani);
+    m.bindPopup(
+      "<b>" + kacir(i.hayvan) + "</b> — " + kacir(i.aciliyet) + "<br>" +
+      kacir(i.aciklama) + "<br><small>" + kacir(i.tarih) + "</small>"
+    );
+    noktalar.push([i.konum.lat, i.konum.lng]);
+  });
+  if (noktalar.length) harita.fitBounds(noktalar, { padding: [40, 40], maxZoom: 15 });
+  setTimeout(function () { harita.invalidateSize(); }, 100);
+}
+
+// ===== (1) Kurum rehberi =====
+function rehberiCiz() {
+  const kurumlar = kurumlariGetir();
+  const sel = document.getElementById("vet");
+  sel.innerHTML = kurumlar.map(function (k, idx) {
+    return '<option value="' + idx + '">' + kacir(k.ad) + (k.tel ? " (" + kacir(k.tel) + ")" : "") + '</option>';
+  }).join("");
+  rehberAksiyonCiz();
+}
+function rehberAksiyonCiz() {
+  const kurumlar = kurumlariGetir();
+  const idx = parseInt(document.getElementById("vet").value || "0", 10);
+  const k = kurumlar[idx];
+  const kap = document.getElementById("rehber-aksiyon");
+  if (!k || !k.tel) { kap.innerHTML = '<p class="ipucu">Bu kurum için telefon kayıtlı değil. Ayarlar’dan ekleyebilirsiniz.</p>'; return; }
+  const tel = k.tel.replace(/\s/g, "");
+  kap.innerHTML =
+    '<a class="a-ara" href="tel:' + tel + '">📞 Ara</a>' +
+    '<a class="a-wp2" href="https://wa.me/' + tel.replace(/[^0-9]/g, "") + '" target="_blank">📲 WhatsApp</a>';
+}
+document.getElementById("vet").addEventListener("change", rehberAksiyonCiz);
+
+// ===== Ayarlar sayfası =====
+function ayarSayfasiniCiz() {
+  const ayar = ayarlariGetir();
+  document.getElementById("eposta").value = ayar.eposta || "";
+  document.getElementById("webhook").value = ayar.webhook || "";
+  kurumDuzenleCiz();
+}
+document.getElementById("ayar-kaydet").addEventListener("click", function () {
+  ayarlariKaydet({
+    eposta: document.getElementById("eposta").value.trim(),
+    webhook: document.getElementById("webhook").value.trim()
+  });
+  toast("💾 Ayarlar kaydedildi");
+});
+function kurumDuzenleCiz() {
+  const kurumlar = kurumlariGetir();
+  document.getElementById("kurum-liste").innerHTML = kurumlar.map(function (k, idx) {
+    return '<div class="ihbar" style="border-left-color:#2563eb">' +
+      '<div class="ihbar-bas"><span class="ihbar-tip" style="font-size:14px">' + kacir(k.ad) + '</span>' +
+      '<button class="a-sil" style="flex:0;padding:6px 10px;border-radius:8px" onclick="kurumSil(' + idx + ')">Sil</button></div>' +
+      '<div class="ihbar-meta">☎️ ' + (kacir(k.tel) || "telefon yok") + '</div></div>';
+  }).join("");
+}
+document.getElementById("kurum-ekle").addEventListener("click", function () {
+  const ad = document.getElementById("k-ad").value.trim();
+  const tel = document.getElementById("k-tel").value.trim();
+  if (!ad) { toast("⚠️ Kurum adı gerekli"); return; }
+  const kurumlar = kurumlariGetir();
+  kurumlar.push({ ad: ad, tel: tel });
+  kurumlariKaydet(kurumlar);
+  document.getElementById("k-ad").value = "";
+  document.getElementById("k-tel").value = "";
+  kurumDuzenleCiz();
+  rehberiCiz();
+  toast("➕ Kurum eklendi");
+});
+function kurumSil(idx) {
+  const kurumlar = kurumlariGetir();
+  kurumlar.splice(idx, 1);
+  kurumlariKaydet(kurumlar);
+  kurumDuzenleCiz();
+  rehberiCiz();
+  toast("🗑️ Kurum silindi");
+}
+
+// ===== Başlangıç =====
+rehberiCiz();
+listeyiCiz();
+</script>
+</body>
+</html>
