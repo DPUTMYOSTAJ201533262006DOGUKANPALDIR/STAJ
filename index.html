@@ -504,9 +504,55 @@ function sunucuyaGonder(id) {
 }
 
 // ===== (3) Harita =====
+// Leaflet'i sayfa açılışında yükleyemeyen ortamlar (ör. htmlpreview) için
+// kütüphaneyi harita açılınca, birden fazla CDN deneyerek canlı yükle.
+const LEAFLET_CDN = [
+  "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js",
+  "https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js",
+  "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"
+];
+const LEAFLET_CSS = [
+  "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css",
+  "https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css",
+  "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css"
+];
+let leafletYukleniyor = false;
+function leafletYukle(geriCagir) {
+  if (typeof L !== "undefined") return geriCagir(true);
+  if (leafletYukleniyor) return;
+  leafletYukleniyor = true;
+  // CSS (ilk kaynak yeterli)
+  if (!document.getElementById("leaflet-css-dyn")) {
+    const css = document.createElement("link");
+    css.id = "leaflet-css-dyn"; css.rel = "stylesheet"; css.href = LEAFLET_CSS[0];
+    document.head.appendChild(css);
+  }
+  // JS - sırayla CDN dene
+  (function dene(i) {
+    if (i >= LEAFLET_CDN.length) { leafletYukleniyor = false; geriCagir(false); return; }
+    const s = document.createElement("script");
+    s.src = LEAFLET_CDN[i];
+    s.onload = function () { leafletYukleniyor = false; geriCagir(typeof L !== "undefined"); };
+    s.onerror = function () { dene(i + 1); };
+    document.head.appendChild(s);
+  })(0);
+}
+
 function haritayiCiz() {
   const uyari = document.getElementById("harita-uyari");
-  if (typeof L === "undefined") { uyari.style.display = "block"; return; }
+  if (typeof L === "undefined") {
+    uyari.style.display = "block";
+    uyari.innerHTML = "⏳ Harita yükleniyor...";
+    leafletYukle(function (basarili) {
+      if (basarili) { uyari.style.display = "none"; haritayiCiz(); }
+      else {
+        uyari.style.display = "block";
+        uyari.innerHTML = "⚠️ Harita yüklenemedi (internet/CDN engeli olabilir). " +
+          "Konumlu ihbarlar “İhbarlar” sekmesinden 🗺️ Harita ile açılabilir.";
+      }
+    });
+    return;
+  }
   uyari.style.display = "none";
   if (!harita) {
     harita = L.map("harita").setView([39.0, 35.0], 5); // Türkiye geneli
